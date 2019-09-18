@@ -345,9 +345,9 @@ namespace MYGIS
             bigbytes[0] = b3;
             return BitConverter.ToInt32(bigbytes, 0);
         }
-        public static void eee()
+        public static void test()
         {
-            Console.WriteLine("nmslladfsdfa");        }
+            Console.WriteLine("this is used to test the GitHub");        }
     }
     enum SHAPETYPE
     {

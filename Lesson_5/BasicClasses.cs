@@ -23,7 +23,13 @@ namespace MYGIS
             return Math.Sqrt((x - anothervertex.x) * (x - anothervertex.x)
                 - (y - anothervertex.y) * (y - anothervertex.y));
         }
+        public void CopyFrom(GISVertex v)
+        {
+            x = v.x;
+            y = v.y;
+        }
     }
+
     class GISPoint:GISSpatial
     {
         //public GISVertex Location; **previous code
@@ -199,6 +205,11 @@ namespace MYGIS
             bottomleft.x = newminx;
             bottomleft.y = newminy;
         }
+        public void CopyFrom(GISExtent extent)
+        {
+            upright.CopyFrom(extent.upright);
+            bottomleft.CopyFrom(extent.bottomleft);
+        }
     }
 
     class GISView
@@ -250,6 +261,11 @@ namespace MYGIS
             CurrentMapExtent.ChangeExtent(action);
             Update(CurrentMapExtent, MapWindowsSize);
         }
+        public void UpdateExtent(GISExtent extent)
+        {
+            CurrentMapExtent.CopyFrom(extent);
+            Update(CurrentMapExtent, MapWindowsSize);
+        }
     }
 
     //定义一个枚举类型用于记录各种地图浏览操作
@@ -284,7 +300,7 @@ namespace MYGIS
             return header;
         }
 
-        public void ReadShapefile(string shpfilename)
+        public GISLayer ReadShapefile(string shpfilename)
         {
             FileStream fsr = new FileStream(shpfilename, FileMode.Open);//打开shp文件
             BinaryReader br = new BinaryReader(fsr);//获取文件流后用二进制读取工具
@@ -292,6 +308,7 @@ namespace MYGIS
             SHAPETYPE ShapeType = (SHAPETYPE)Enum.Parse( //类型整数变对应的枚举值
                 typeof(SHAPETYPE), sfh.ShapeType.ToString());
             GISExtent extent = new GISExtent(sfh.Xmax, sfh.Xmin, sfh.Ymax, sfh.Ymin);
+            GISLayer layer = new GISLayer(shpfilename, ShapeType, extent); //gislayer的构造参数分别是名字 图层类型 范围
             while (br.PeekChar() != -1)
             {
                 RecordHeader rh = ReadRecordHeader(br);
@@ -300,11 +317,14 @@ namespace MYGIS
                 if (ShapeType == SHAPETYPE.point)
                 {
                     GISPoint onepoint = ReadPoint(RecordContent);
+                    GISFeature onefeature = new GISFeature(onepoint, new GISAttribute());
+                    layer.AddFeature(onefeature);
                 }
             }
 
             br.Close();
             fsr.Close();//归还文件权限于操作系统
+            return layer;//最后返回一个图层文件
         }
         GISPoint ReadPoint(byte[] RecordContent)
         {//从字节数组指定位置的八个字节转换为双精度浮点数
@@ -356,4 +376,34 @@ namespace MYGIS
         polygon = 5
     };
 
+    class GISLayer
+    {
+        public string Name;
+        public GISExtent Extent;
+        public bool DrawAttributeOrNot;
+        public int LabelIndex;
+        public SHAPETYPE ShapeType;
+        List<GISFeature> Features = new List<GISFeature>(); //私有的 不宜改动
+        public GISLayer(string _name, SHAPETYPE _shapetype, GISExtent _extent)
+        {
+            Name = _name;
+            ShapeType = _shapetype;
+            Extent = _extent;
+        }
+        public void draw(Graphics graphics, GISView view)
+        {
+            for (int i = 0; i < Features.Count; i++)
+            {
+                Features[i].draw(graphics,view,DrawAttributeOrNot,LabelIndex);
+            }
+        }
+        public void AddFeature(GISFeature feature)
+        {
+            Features.Add(feature);
+        }
+        public int FeatureCount()
+        {
+            return Features.Count;
+        }
+    }
 }

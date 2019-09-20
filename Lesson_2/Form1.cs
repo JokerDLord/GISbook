@@ -40,13 +40,17 @@ namespace Lesson_2
             double y = Convert.ToDouble(textBox2.Text);
             GISVertex onevertex = new GISVertex(x, y);
             GISPoint onepoint = new GISPoint(onevertex);
+
+
             //获取属性信息
             string attribute = textBox3.Text;
             GISAttribute oneattribute = new GISAttribute();
             oneattribute.AddValue(attribute);
+
             //新建一个GISFeature 并添加到features数组中
             GISFeature onefeature = new GISFeature(onepoint, oneattribute);
             features.Add(onefeature);
+
             //画出这个GISFeature
             Graphics graphics = this.CreateGraphics();
             onefeature.draw(graphics,true,0); 

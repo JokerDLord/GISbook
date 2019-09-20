@@ -316,7 +316,7 @@ namespace MYGIS
             public double Ymax;
             public double Unused9, Unused10, Unused11, Unused12;
         }
-        ShapefileHeader ReadFileHeader(BinaryReader br) //用于读取文件头的函数
+        static ShapefileHeader ReadFileHeader(BinaryReader br) //用于读取文件头的函数
         {//*************************************
             byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
             GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);//handle读取buff数组在内存中的指针
@@ -327,7 +327,7 @@ namespace MYGIS
             return header;
         }
 
-        public GISLayer ReadShapefile(string shpfilename)
+        public static GISLayer ReadShapefile(string shpfilename)
         {
             FileStream fsr = new FileStream(shpfilename, FileMode.Open);//打开shp文件
             BinaryReader br = new BinaryReader(fsr);//获取文件流后用二进制读取工具
@@ -373,7 +373,7 @@ namespace MYGIS
             fsr.Close();//归还文件权限于操作系统
             return layer;//最后返回一个图层文件
         }
-        GISPoint ReadPoint(byte[] RecordContent)
+        static GISPoint ReadPoint(byte[] RecordContent)
         {//从字节数组指定位置的八个字节转换为双精度浮点数
             double x = BitConverter.ToDouble(RecordContent, 0);
             double y = BitConverter.ToDouble(RecordContent, 8);
@@ -387,7 +387,7 @@ namespace MYGIS
             public int RecordLength;
             public int ShapeType;
         }
-        RecordHeader ReadRecordHeader(BinaryReader br) 
+        static RecordHeader ReadRecordHeader(BinaryReader br) 
             //用于读取记录头的函数 几乎与读文件头的函数相同
         {//*************************************
             byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
@@ -399,7 +399,7 @@ namespace MYGIS
             return header;
         }
         //通用转换函数 可用于BigInteger颠倒字节顺序重新构造正确数值
-        int FromBigToLittle(int bigvalue)
+        static int FromBigToLittle(int bigvalue)
         {
             byte[] bigbytes = new byte[4];
             GCHandle handle = GCHandle.Alloc(bigbytes, GCHandleType.Pinned);
@@ -413,7 +413,7 @@ namespace MYGIS
             return BitConverter.ToInt32(bigbytes, 0);
         }
 
-        List<GISLine> ReadLines(byte[] RecordContent)//读取线文件
+        static List<GISLine> ReadLines(byte[] RecordContent)//读取线文件
         {
             int N = BitConverter.ToInt32(RecordContent, 32);//面线数量
             int M = BitConverter.ToInt32(RecordContent, 36);
@@ -439,7 +439,7 @@ namespace MYGIS
 
         }
 
-        List<GISPolygon> ReadPolygons(byte[] RecordContent)//读取线文件
+        static List<GISPolygon> ReadPolygons(byte[] RecordContent)//读取线文件
         {
             int N = BitConverter.ToInt32(RecordContent, 32);//面线数量
             int M = BitConverter.ToInt32(RecordContent, 36);

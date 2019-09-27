@@ -31,6 +31,13 @@ namespace MYGIS
             x = v.x;
             y = v.y;
         }
+
+        public void WriteVertex(BinaryWriter bw)
+        {
+            bw.Write(x);
+            bw.Write(y);
+        }
+
     }
 
     public class GISPoint:GISSpatial
@@ -725,6 +732,19 @@ namespace MYGIS
                 bw.Write(GISTools.TypeToInt(field.datatype)); //字段类型
                 GISTools.WriteString(field.name, bw); //字段名
             }
+        }
+
+        //定义写入多节点类
+        public void WriteMultipleVertexes(List<GISVertex> vs, BinaryWriter bw)
+        {
+            bw.Write(vs.Count); //先写入记录vs的总数
+            for (int vc = 0; vc < vs.Count; vc++)
+                vs[vc].WriteVertex(bw);
+        }
+
+        static void WriteAttributes(GISAttribute attribute, BinaryWriter bw)
+        {
+
         }
 
     }

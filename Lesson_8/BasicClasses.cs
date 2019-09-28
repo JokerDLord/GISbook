@@ -64,7 +64,7 @@ namespace MYGIS
     }
     public class GISLine : GISSpatial
     {
-        List<GISVertex> Vertexes;
+        public List<GISVertex> Vertexes;
         public double length;
         public GISLine(List<GISVertex> _vertexes)
         {
@@ -89,7 +89,7 @@ namespace MYGIS
     }
     public class GISPolygon:GISSpatial
     {
-        List<GISVertex> Vertexes;
+        public List<GISVertex> Vertexes;
         public double Area;
         public GISPolygon(List<GISVertex> _vertexes)
         {
@@ -139,10 +139,12 @@ namespace MYGIS
         {
             values.Add(o);
         }
+
         public object GetValue(int index)
         {
             return values[index];
         }
+
         public void draw(Graphics graphics,GISView view, GISVertex location, int index)
         {
             Point screenpoint = view.ToScreenPoint(location);//转换坐标到屏幕点
@@ -150,6 +152,11 @@ namespace MYGIS
                 new Font("宋体", 20),
                 new SolidBrush(Color.Green), 
                 new PointF(screenpoint.X, screenpoint.Y));
+        }
+
+        public int ValueCount()
+        {
+            return values.Count;
         }
     }
 
@@ -719,7 +726,7 @@ namespace MYGIS
             WriteFileHeader(layer, bw); //写入头文件
             GISTools.WriteString(layer.Name, bw); //写入图层名字
             WriteFields(layer.Fields, bw); //写入字段
-            //其他内容
+            WriteFeatures(layer, bw);
             bw.Close();
             fsr.Close();
         }
@@ -735,7 +742,7 @@ namespace MYGIS
         }
 
         //定义写入多节点类
-        public void WriteMultipleVertexes(List<GISVertex> vs, BinaryWriter bw)
+        static void WriteMultipleVertexes(List<GISVertex> vs, BinaryWriter bw)
         {
             bw.Write(vs.Count); //先写入记录vs的总数
             for (int vc = 0; vc < vs.Count; vc++)
@@ -744,7 +751,62 @@ namespace MYGIS
 
         static void WriteAttributes(GISAttribute attribute, BinaryWriter bw)
         {
+            for (int i = 0; i < attribute.ValueCount(); i++)
+            {
+                Type type = attribute.GetValue(i).GetType();
+                if (type.ToString() == "System.Boolean")
+                    bw.Write((bool)attribute.GetValue(i));
+                else if (type.ToString() == "System.Byte")
+                    bw.Write((byte)attribute.GetValue(i));
+                else if (type.ToString() == "System.Char")
+                    bw.Write((char)attribute.GetValue(i));
+                else if (type.ToString() == "System.Decimal")
+                    bw.Write((decimal)attribute.GetValue(i));
+                else if (type.ToString() == "System.Double")
+                    bw.Write((double)attribute.GetValue(i));
+                else if (type.ToString() == "System.Single")
+                    bw.Write((float)attribute.GetValue(i));
+                else if (type.ToString() == "System.Int32")
+                    bw.Write((int)attribute.GetValue(i));
+                else if (type.ToString() == "System.Int64")
+                    bw.Write((long)attribute.GetValue(i));
+                else if (type.ToString() == "System.UInt16")
+                    bw.Write((ushort)attribute.GetValue(i));
+                else if (type.ToString() == "System.UInt32")
+                    bw.Write((uint)attribute.GetValue(i));
+                else if (type.ToString() == "System.UInt64")
+                    bw.Write((ulong)attribute.GetValue(i));
+                else if (type.ToString() == "System.SByte")
+                    bw.Write((sbyte)attribute.GetValue(i));
+                else if (type.ToString() == "System.Int16")
+                    bw.Write((short)attribute.GetValue(i));
+                else if (type.ToString() == "System.String")
+                    GISTools.WriteString((string)attribute.GetValue(i), bw);
+            }
+        }
 
+        //输出图层所有GISFeatrue
+        static void WriteFeatures(GISLayer layer, BinaryWriter bw)
+        {
+            for (int featureindex = 0; featureindex < layer.FeatureCount(); featureindex++)
+            {
+                GISFeature feature = layer.GetFeature(featureindex);
+                if (layer.ShapeType == SHAPETYPE.point)
+                {
+                    ((GISPoint)feature.spatialpart).centroid.WriteVertex(bw);
+                }
+                else if (layer.ShapeType == SHAPETYPE.line)
+                {
+                    GISLine line = (GISLine)(feature.spatialpart);
+                    WriteMultipleVertexes(line.Vertexes,bw);
+                }
+                else if (layer.ShapeType == SHAPETYPE.polygon)
+                {
+                    GISPolygon polygon = (GISPolygon)(feature.spatialpart);
+                    WriteMultipleVertexes(polygon.Vertexes, bw);
+                }
+                WriteAttributes(feature.attributepart, bw);
+            }
         }
 
     }

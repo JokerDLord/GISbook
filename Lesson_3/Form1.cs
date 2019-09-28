@@ -38,12 +38,12 @@ namespace Lesson_3
 
         private void Button1_Click(object sender, EventArgs e)
         {
-            double x = Convert.ToDouble(textBox1.Text);
-            double y = Convert.ToDouble(textBox2.Text);
+            double x = Convert.ToDouble(tbX.Text);
+            double y = Convert.ToDouble(tbY.Text);
             GISVertex onevertex = new GISVertex(x, y);
             GISPoint onepoint = new GISPoint(onevertex);
             //获取属性信息
-            string attribute = textBox3.Text;
+            string attribute = tbAttribute.Text;
             GISAttribute oneattribute = new GISAttribute();
             oneattribute.AddValue(attribute);
             //新建一个GISFeature 并添加到features数组中
@@ -63,7 +63,8 @@ namespace Lesson_3
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {//点击空间对象显示属性信息
             //根据鼠标的点击创建节点信息
-            GISVertex mouselocation = view.ToMapVertex(new Point(e.X, e.Y));
+            if (features.Count == 0) return;
+            GISVertex mouselocation = view.ToMapVertex(e.Location);
             double mindistance = Double.MaxValue;
             int id = -1;
             //通过遍历找出features数组中元素的中心点与点击位置最近的点
@@ -77,31 +78,36 @@ namespace Lesson_3
                 }
             }
             //判断是否存在空间对象
-            if (id == -1)
-            {
-                MessageBox.Show("没有任何空间对象！！");
-                return;//结束了
-            }
 
             Point nearestpoint = view.ToScreenPoint(features[id].spatialpart.centroid);
-            int screendistance = Math.Abs(nearestpoint.X - e.X) + Math.Abs(nearestpoint.Y - e.Y);
-            if (screendistance > 20)
+            int screendistance = ScreenDistance(e.Location,nearestpoint);
+            if (screendistance < 5)
             {
-                MessageBox.Show("请靠近空间对象点击");
-                return;
-            }
-            MessageBox.Show("该空间对象的属性是 " + features[id].getAttribute(0));            
+                MessageBox.Show("该空间对象的属性是 " + features[id].getAttribute(0).ToString());
+            }            
         }
+
+        private int ScreenDistance(Point _P1, Point _P2)
+        {
+            return Math.Abs(_P1.X - _P2.X) + Math.Abs(_P1.Y - _P2.Y);
+        }
+
 
         private void Button2_Click(object sender, EventArgs e)
         {
             //从文本框获取更新的地图范围
-            double minx = Double.Parse(textBox4.Text);
-            double miny = Double.Parse(textBox5.Text);
-            double maxx = Double.Parse(textBox6.Text);
-            double maxy = Double.Parse(textBox7.Text);
+            double minx = Double.Parse(tbMinX.Text);
+            double miny = Double.Parse(tbMinY.Text);
+            double maxx = Double.Parse(tbMaxX.Text);
+            double maxy = Double.Parse(tbMaxY.Text);
             //更新view
             view.Update(new GISExtent(minx, maxx, miny, maxy), ClientRectangle);
+            UpdateMap();
+
+        }
+
+        private void UpdateMap()
+        {
             Graphics graphics = CreateGraphics();
             //用黑色填充整个窗口
             graphics.FillRectangle(new SolidBrush(Color.Black), ClientRectangle);
@@ -110,7 +116,7 @@ namespace Lesson_3
             {
                 features[i].draw(graphics, view, true, 0);
             }
-
+            graphics.Dispose();
         }
 
         private void TextBox4_TextChanged(object sender, EventArgs e)

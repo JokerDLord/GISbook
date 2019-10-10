@@ -21,6 +21,13 @@ namespace MYGIS
             y = _y;
         }
 
+        //从文件中读取结点实例
+        public GISVertex(BinaryReader br)
+        {
+            x = br.ReadDouble();
+            y = br.ReadDouble();
+        }
+
         public double Distance(GISVertex anothervertex)
         {
             return Math.Sqrt((x - anothervertex.x) * (x - anothervertex.x)
@@ -335,6 +342,7 @@ namespace MYGIS
         }
         static ShapefileHeader ReadFileHeader(BinaryReader br) //用于读取文件头的函数
         {//*************************************
+            /*
             byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
             GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);//handle读取buff数组在内存中的指针
             //指针指向的内存被映射给一个结构体实例header
@@ -342,6 +350,8 @@ namespace MYGIS
                 (handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
             handle.Free(); //释放内存 将其还给C#管理
             return header;
+            */
+            return (ShapefileHeader)GISTools.FromBytes(br, typeof(ShapefileHeader));
         }
 
         public static GISLayer ReadShapefile(string shpfilename)
@@ -409,15 +419,18 @@ namespace MYGIS
             public int ShapeType;
         }
         static RecordHeader ReadRecordHeader(BinaryReader br) 
-            //用于读取记录头的函数 几乎与读文件头的函数相同
-        {//*************************************
-            byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
-            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);//handle读取buff数组在内存中的指针
-            //指针指向的内存被映射给一个结构体实例header
-            RecordHeader header = (RecordHeader)Marshal.PtrToStructure
-                (handle.AddrOfPinnedObject(), typeof(RecordHeader));
-            handle.Free(); //释放内存 将其还给C#管理
-            return header;
+        {//用于读取记录头的函数 几乎与读文件头的函数相同
+         //*************************************
+         /*
+             byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
+             GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);//handle读取buff数组在内存中的指针
+             //指针指向的内存被映射给一个结构体实例header
+             RecordHeader header = (RecordHeader)Marshal.PtrToStructure
+                 (handle.AddrOfPinnedObject(), typeof(RecordHeader));
+             handle.Free(); //释放内存 将其还给C#管理
+             return header;
+             */
+            return (RecordHeader)GISTools.FromBytes(br, typeof(RecordHeader));
         }
         //通用转换函数 可用于BigInteger颠倒字节顺序重新构造正确数值
         static int FromBigToLittle(int bigvalue)
@@ -541,11 +554,12 @@ namespace MYGIS
     {
         public string Name;
         public GISExtent Extent;
-        public bool DrawAttributeOrNot;
+        public bool DrawAttributeOrNot = false;
         public int LabelIndex;
         public SHAPETYPE ShapeType;
         List<GISFeature> Features = new List<GISFeature>(); //私有的 不宜改动
         public List<GISField> Fields;
+
         public GISLayer(string _name, SHAPETYPE _shapetype, GISExtent _extent, List<GISField> _fields)
         {
             Name = _name;
@@ -683,6 +697,32 @@ namespace MYGIS
             return (int)onetype;
         }
 
+        //从文件中读取某个结构体的实例
+        public static Object FromBytes(BinaryReader br, Type type)
+        {
+            byte[] buff = br.ReadBytes(Marshal.SizeOf(type));
+            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
+            Object result = Marshal.PtrToStructure(handle.AddrOfPinnedObject(), type);
+            handle.Free();
+            return result;
+        }
+
+        //读取整数确定字符串字节长度，读取相应的字节长度，恢复成字符串
+        public static string ReadString(BinaryReader br)
+        {
+            int length = br.ReadInt32();
+            byte[] sbytes = br.ReadBytes(length);//length时每次读取字节流并写入字节数组后后前移的长度
+            return Encoding.Default.GetString(sbytes);//将字节编码成字符串
+        }
+
+        //读到的整数转换为特定数据类型
+        public static Type IntToType(int index)
+        {
+            string typestring = Enum.GetName(typeof(ALLTYPES), index);//在枚举中检索具有指定值的常数名称
+            typestring = typestring.Replace("_", ".");
+            return Type.GetType(typestring);
+        }
+
 
     }
     public class GISField
@@ -809,6 +849,100 @@ namespace MYGIS
             }
         }
 
+        //*************
+        //从文件中读取字段信息
+        static List<GISField> ReadFields(BinaryReader br, int FieldCount)
+        {
+            List<GISField> fields = new List<GISField>();
+            for (int fieldindex = 0; fieldindex < FieldCount; fieldindex++)
+            {
+                Type fieldtype = GISTools.IntToType(br.ReadInt32());
+                string fieldname = GISTools.ReadString(br);
+                fields.Add(new GISField(fieldtype, fieldname));
+            }
+            return fields;
+        }
+
+        static List<GISVertex> ReadMultipleVertexes(BinaryReader br)
+        {
+            List<GISVertex> vs = new List<GISVertex>();
+            int vcount = br.ReadInt32();
+            for (int vc = 0; vc < vcount; vc++)
+                vs.Add(new GISVertex(br));
+            return vs;
+        }
+
+        //读取一个gisfeature的所有属性值，放在gisfile中 此函数需要事先知道字段结构，根据字段类型选取适当的读取函数
+        static GISAttribute ReadAttributes(List<GISField> fs, BinaryReader br)
+        {
+            GISAttribute attribute = new GISAttribute();
+            for (int i = 0; i < fs.Count; i++)
+            {
+                Type type = fs[i].datatype;
+                if (type.ToString() == "System.Boolean")
+                    attribute.AddValue(br.ReadBoolean());
+                else if (type.ToString() == "System.Boolean")
+                    attribute.AddValue(br.ReadBoolean());
+                else if (type.ToString() == "System.Byte")
+                    attribute.AddValue(br.ReadByte());
+                else if (type.ToString() == "System.Char")
+                    attribute.AddValue(br.ReadChar());
+                else if (type.ToString() == "System.Decimal")
+                    attribute.AddValue(br.ReadDecimal());
+                else if (type.ToString() == "System.Double")
+                    attribute.AddValue(br.ReadDouble());
+                else if (type.ToString() == "System.Single")
+                    attribute.AddValue(br.ReadSingle());
+                else if (type.ToString() == "System.Int32")
+                    attribute.AddValue(br.ReadInt32());
+                else if (type.ToString() == "System.Int64")
+                    attribute.AddValue(br.ReadInt64());
+                else if (type.ToString() == "System.UInt16")
+                    attribute.AddValue(br.ReadUInt16());
+                else if (type.ToString() == "System.UInt32")
+                    attribute.AddValue(br.ReadUInt32());
+                else if (type.ToString() == "System.UInt64")
+                    attribute.AddValue(br.ReadUInt64());
+                else if (type.ToString() == "System.Boolean")
+                    attribute.AddValue(br.ReadBoolean());
+                else if (type.ToString() == "System.String")
+                    attribute.AddValue(GISTools.ReadString(br));
+            }
+            return attribute;
+        }
+
+        //读取所有的gisfeature的空间信息和属性值
+        static void ReadFeatures(GISLayer layer, BinaryReader br, int FeatureCount)
+        {
+            for (int featureindex = 0; featureindex < FeatureCount; featureindex++)
+            {
+                GISFeature feature = new GISFeature(null,null);
+                if (layer.ShapeType == SHAPETYPE.point)
+                    feature.spatialpart = new GISPoint(new GISVertex(br));
+                else if (layer.ShapeType == SHAPETYPE.line)
+                    feature.spatialpart = new GISLine(ReadMultipleVertexes(br));
+                else if (layer.ShapeType == SHAPETYPE.polygon)
+                    feature.spatialpart = new GISPolygon(ReadMultipleVertexes(br));
+                feature.attributepart = ReadAttributes(layer.Fields, br);
+                layer.AddFeature(feature);
+            }
+        }
+
+        public static GISLayer ReadFile(string filename)
+        {
+            FileStream fsr = new FileStream(filename, FileMode.Open);
+            BinaryReader br = new BinaryReader(fsr);
+            MyFileHeader mfh = (MyFileHeader)(GISTools.FromBytes(br, typeof(MyFileHeader)));//读取文件头
+            SHAPETYPE ShapeType = (SHAPETYPE)Enum.Parse(typeof(SHAPETYPE), mfh.Shapetype.ToString());//获取空间实体类型shapetype和
+            GISExtent Extent = new GISExtent(mfh.MinX, mfh.MaxX, mfh.MinY, mfh.MaxY);//地图范围extent
+            string layername = GISTools.ReadString(br);//读取图层名
+            List<GISField> Fields = ReadFields(br, mfh.FieldCount);//读取字段信息
+            GISLayer layer = new GISLayer(layername, ShapeType, Extent, Fields);
+            ReadFeatures(layer, br, mfh.FeatureCount);
+            br.Close();
+            fsr.Close();
+            return layer;
+        }
     }
 
     public enum ALLTYPES //枚举中不允许有. 只有_

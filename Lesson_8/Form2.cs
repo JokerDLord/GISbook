@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Lesson_7
+namespace Lesson_8
 {
     public partial class Form2 : Form
     {

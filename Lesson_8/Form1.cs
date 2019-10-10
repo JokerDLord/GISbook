@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using MYGIS;
 
-namespace Lesson_7
+namespace Lesson_8
 {
     public partial class Form1 : Form
     {
@@ -70,6 +70,20 @@ namespace Lesson_7
         {
             Form2 form2 = new Form2(layer);
             form2.Show();
+        }
+
+        private void button10_Click(object sender, EventArgs e)
+        {
+            GISMyFile.WriteFile(layer, @"D:\mygisfile\mygisfile.jkgeo");
+            MessageBox.Show("done.");
+        }
+
+        private void button11_Click(object sender, EventArgs e)
+        {
+            layer = GISMyFile.ReadFile(@"D:\mygisfile\mygisfile.jkgeo");
+            MessageBox.Show("read " + layer.FeatureCount() + " objects.");
+            view.UpdateExtent(layer.Extent);
+            UpdateMap();
         }
     }
 }

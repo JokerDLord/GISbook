@@ -1,4 +1,4 @@
-﻿namespace Lesson_7
+﻿namespace Lesson_8
 {
     partial class Form2
     {

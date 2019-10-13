@@ -123,7 +123,7 @@ namespace MYGIS
         public abstract void draw(Graphics graphics, GISView view);
     }//有了抽象的空间spatial类之后 就可以重新定义三个对象实体类
 
-    class GISExtent //这是一个重要的类 空间范围
+    class GISExtent //这是一个重要的类 设定地图的空间范围
     {
         public GISVertex bottomleft;
         public GISVertex upright; //外接矩形的左下和右上角的节点
@@ -212,7 +212,7 @@ namespace MYGIS
         }
     }
 
-    class GISView
+    class GISView //设定地图的空间范围以及窗口范围
     {
         GISExtent CurrentMapExtent;
         Rectangle MapWindowsSize;
@@ -263,7 +263,8 @@ namespace MYGIS
         }
         public void UpdateExtent(GISExtent extent)
         {
-            CurrentMapExtent.CopyFrom(extent);
+            //CurrentMapExtent.CopyFrom(extent);// 为什么不直接是 CurrentMapExtent = extent
+            CurrentMapExtent = extent;
             Update(CurrentMapExtent, MapWindowsSize);
         }
     }

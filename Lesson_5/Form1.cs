@@ -58,5 +58,7 @@ namespace Lesson_5
             view.ChangeView(action);
             UpdateMap();
         }
+
+
     }
 }

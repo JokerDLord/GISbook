@@ -93,6 +93,18 @@ namespace MYGIS
         {
             return Vertexes[Vertexes.Count - 1];
         }
+
+        //点到线实体的距离计算 //可以算出最短的距离 但无法获知最近的位置
+        public double Distance(GISVertex vertex)
+        {
+            double distance = Double.MaxValue;
+            for (int i = 0; i < Vertexes.Count; i++)
+            {
+                distance = Math.Min(GISTools.PointToSegment
+                    (Vertexes[i], Vertexes[i + 1], vertex), distance);
+            }
+            return distance;
+        }
     }
     public class GISPolygon:GISSpatial
     {
@@ -331,6 +343,13 @@ namespace MYGIS
             Point p1 = ToScreenPoint(v1);
             Point p2 = ToScreenPoint(v2);
             return Math.Sqrt((double)((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y)));
+        }
+
+        //新的计算屏幕距离函数 由于点和线最短距离的位置不知 
+        //所以直接构造两个vertex调用原有toscreendistance计算即可
+        public double ToScreenDistance(double distance)
+        {
+            return ToScreenDistance(new GISVertex(0, 0), new GISVertex(0, distance));
         }
     }
 
@@ -608,7 +627,11 @@ namespace MYGIS
         {
             return Features[i];
         }
-        
+
+        public List<GISFeature> GetAllFeatures()
+        {
+            return Features;
+        }
     }
     public class GISTools
     {
@@ -738,6 +761,30 @@ namespace MYGIS
             return Type.GetType(typestring);
         }
 
+        public static double PointToSegment(GISVertex A, GISVertex B, GISVertex C)
+        {
+            double dot1 = Dot3Product(A, B, C);
+            if (dot1 > 0) return B.Distance(C);
+            double dot2 = Dot3Product(B, A, C);
+            if (dot2 > 0) return A.Distance(C);
+            double dist = Cross3Product(A, B, C) / A.Distance(B);
+            return Math.Abs(dist);
+        }
+
+        //定义两个矢量运算 点积和叉积
+        static double Dot3Product(GISVertex A, GISVertex B, GISVertex C)
+        {
+            GISVertex AB = new GISVertex(B.x - A.x, B.y - A.y);//矢量也可以通过vertex来记录
+            GISVertex BC = new GISVertex(C.x - B.x, C.y - B.y);
+            return AB.x * BC.x + AB.y * BC.y;
+        }
+
+        static double Cross3Product(GISVertex A, GISVertex B, GISVertex C)
+        {
+            GISVertex AB = new GISVertex(B.x - A.x, B.y - A.y);//矢量也可以通过vertex来记录
+            GISVertex BC = new GISVertex(C.x - B.x, C.y - B.y);
+            return VectorProduct(AB, BC);
+        }
 
     }
     public class GISField
@@ -1057,6 +1104,52 @@ namespace MYGIS
                     return SelectResult.TooFar;//即使在粗选相交 精选距离也超过了限制 则返回
                 }
             }
+        }
+
+
+        public SelectResult SelectLine(GISVertex vertex, List<GISFeature> features,
+            GISView view, GISExtent MinSelectExtent)
+        {
+            Double distance = Double.MaxValue;
+            int id = -1;
+            for (int i = 0; i < features.Count; i++) //找最近的feature判断是否有效
+            {
+                if (MinSelectExtent.IntersectOrNot(features[i].spatialpart.extent) == false) continue;
+                GISLine line = (GISLine)(features[i].spatialpart);
+                double dist = line.Distance(vertex);
+                if (dist < distance)//每次找到最小的距离并记录id号
+                {
+                    distance = dist;
+                    id = i;
+                }
+            }
+            //精选
+            if (id == -1)//经过遍历 没有与minsextent相交的点则跳出
+            {
+                SelectedFeature = null;
+                return SelectResult.TooFar;
+            }
+            else
+            {
+                double screendistance = view.ToScreenDistance(distance);
+                if (screendistance < GISConst.MinScreenDistance)
+                {
+                    SelectedFeature = features[id];
+                    return SelectResult.OK;
+                }
+                else
+                {
+                    SelectedFeature = null;
+                    return SelectResult.TooFar;//即使在粗选相交 精选距离也超过了限制 则返回
+                }
+            }
+        }
+
+
+        public SelectResult SelectPolygon(GISVertex vertex, List<GISFeature> features,
+            GISView view, GISExtent MinSelectExtent)
+        {
+            return SelectResult.TooFar;
         }
     }
 

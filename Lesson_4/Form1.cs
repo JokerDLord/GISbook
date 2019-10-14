@@ -19,7 +19,7 @@ namespace Lesson_4
         {
             InitializeComponent();
             view = new GISView(new GISExtent
-                (new GISVertex(0, 0), new GISVertex(100, 100)), ClientRectangle);
+                (new GISVertex(0, 0), new GISVertex(100, 100)), this.ClientRectangle);
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -51,7 +51,7 @@ namespace Lesson_4
             GISFeature onefeature = new GISFeature(onepoint, oneattribute);
             features.Add(onefeature);
             //画出这个GISFeature
-            Graphics graphics = this.CreateGraphics();
+            Graphics graphics = CreateGraphics();
             onefeature.draw(graphics, view, true, 0); 
             //参数分别是画笔 是否绘制属性 属性列表values的索引
         }
@@ -64,7 +64,8 @@ namespace Lesson_4
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {//点击空间对象显示属性信息
             //根据鼠标的点击创建节点信息
-            GISVertex mouselocation = view.ToMapVertex(new Point(e.X, e.Y));
+            if (features.Count == 0) return;
+            GISVertex mouselocation = view.ToMapVertex(e.Location);
             double mindistance = Double.MaxValue;
             int id = -1;
             //通过遍历找出features数组中元素的中心点与点击位置最近的点
@@ -85,14 +86,13 @@ namespace Lesson_4
             }
 
             Point nearestpoint = view.ToScreenPoint(features[id].spatialpart.centroid);
-            int screendistance = Math.Abs(nearestpoint.X - e.X) + 
-                Math.Abs(nearestpoint.Y - e.Y);
-            if (screendistance > 5)
-            {
-                MessageBox.Show("请靠近空间对象点击");
-                return;
-            }
-            MessageBox.Show("该空间对象的属性是 " + features[id].getAttribute(0));            
+            if (ScreenDistance(e.Location, nearestpoint) < 5)
+                MessageBox.Show(features[id].getAttribute(0).ToString());
+        }
+
+        private int ScreenDistance(Point _P1, Point _P2)
+        {
+            return Math.Abs(_P1.X - _P2.X) + Math.Abs(_P1.Y - _P2.Y);
         }
 
         private void Button2_Click(object sender, EventArgs e)

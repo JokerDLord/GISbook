@@ -89,11 +89,13 @@ namespace Lesson_9
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {
             if (layer == null) return;
-            GISVertex v = view.ToMapVertex(new Point(e.X, e.Y));
+            GISVertex v = view.ToMapVertex(e.Location);
+            Console.WriteLine("mapvertex @" + v.x.ToString() +"|"+ v.y.ToString()); //此处鼠标点到地图点的转换???
             GISSelect gs = new GISSelect();
             if (gs.Select(v, layer.GetAllFeatures(), layer.ShapeType, view) 
                 == SelectResult.OK)
             {
+                Console.WriteLine(gs.SelectedFeature.getAttribute(0).ToString());
                 MessageBox.Show(gs.SelectedFeature.getAttribute(0).ToString());
             }
         }

@@ -98,7 +98,7 @@ namespace MYGIS
         public double Distance(GISVertex vertex)
         {
             double distance = Double.MaxValue;
-            for (int i = 0; i < Vertexes.Count; i++)
+            for (int i = 0; i < Vertexes.Count - 1; i++)
             {
                 distance = Math.Min(GISTools.PointToSegment
                     (Vertexes[i], Vertexes[i + 1], vertex), distance);
@@ -320,10 +320,10 @@ namespace MYGIS
             double ScreenY = WinH - (onevertex.y - MapMinY) / ScaleY;
             return new Point((int)ScreenX, (int)ScreenY);
         }
-        public GISVertex ToMapVertex(Point point)//屏幕点到地图点转换
+        public GISVertex ToMapVertex(Point point)
         {
             double MapX = ScaleX * point.X + MapMinX;
-            double MapY = ScaleX * (WinH - point.Y) + MapMinY;
+            double MapY = ScaleY * (WinH - point.Y) + MapMinY;
             return new GISVertex(MapX, MapY);
         }
         public void ChangeView(GISMapActions action)
@@ -342,7 +342,9 @@ namespace MYGIS
         {
             Point p1 = ToScreenPoint(v1);
             Point p2 = ToScreenPoint(v2);
-            return Math.Sqrt((double)((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y)));
+            double ScreenDistance = Math.Sqrt((double)((p1.X - p2.X) * (p1.X - p2.X) + (p1.Y - p2.Y) * (p1.Y - p2.Y)));
+            Console.WriteLine("ScreenDistance is " + ScreenDistance.ToString());
+            return ScreenDistance;
         }
 
         //新的计算屏幕距离函数 由于点和线最短距离的位置不知 
@@ -782,8 +784,8 @@ namespace MYGIS
         static double Cross3Product(GISVertex A, GISVertex B, GISVertex C)
         {
             GISVertex AB = new GISVertex(B.x - A.x, B.y - A.y);//矢量也可以通过vertex来记录
-            GISVertex BC = new GISVertex(C.x - B.x, C.y - B.y);
-            return VectorProduct(AB, BC);
+            GISVertex AC = new GISVertex(C.x - A.x, C.y - A.y);
+            return VectorProduct(AB, AC);
         }
 
     }
@@ -1048,10 +1050,13 @@ namespace MYGIS
             switch (shapetype)
             {
                 case SHAPETYPE.point:
+                    Console.WriteLine("point");
                     return SelectPoint(vertex, features, view, MinSelectExtent);
                 case SHAPETYPE.line:
+                    Console.WriteLine("line");
                     return SelectLine(vertex, features, view, MinSelectExtent);
                 case SHAPETYPE.polygon:
+                    Console.WriteLine("polygon");
                     return SelectPolygon(vertex, features, view, MinSelectExtent);
             }
             return SelectResult.UnknownType;
@@ -1084,6 +1089,9 @@ namespace MYGIS
                     id = i;
                 }
             }
+            Console.WriteLine("id:"+ id.ToString());//测试id是否存在
+            Console.WriteLine(features[id].spatialpart.centroid.x.ToString() + "|" + features[id].spatialpart.centroid.y.ToString());
+            Console.WriteLine("鼠标点到元素点在地图上相距"+distance.ToString());//此处的distance是features中最近的元素点到鼠标点映射到地图上点的距离
             //精选
             if (id == -1)//经过遍历 没有与minsextent相交的点则跳出
             {
@@ -1093,6 +1101,7 @@ namespace MYGIS
             else 
             {
                 double screendistance = view.ToScreenDistance(vertex, features[id].spatialpart.centroid);
+                //Console.WriteLine(screendistance);
                 if (screendistance < GISConst.MinScreenDistance)
                 {
                     SelectedFeature = features[id];
@@ -1117,12 +1126,15 @@ namespace MYGIS
                 if (MinSelectExtent.IntersectOrNot(features[i].spatialpart.extent) == false) continue;
                 GISLine line = (GISLine)(features[i].spatialpart);
                 double dist = line.Distance(vertex);
+                //Console.WriteLine("dist:" + dist);
                 if (dist < distance)//每次找到最小的距离并记录id号
                 {
                     distance = dist;
                     id = i;
                 }
             }
+            Console.WriteLine("id:" + id.ToString());//测试id是否存在
+            //Console.WriteLine(distance);
             //精选
             if (id == -1)//经过遍历 没有与minsextent相交的点则跳出
             {

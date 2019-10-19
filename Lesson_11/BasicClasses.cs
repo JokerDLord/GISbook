@@ -179,6 +179,7 @@ namespace MYGIS
         public GISSpatial spatialpart;
         public GISAttribute attributepart; //空间与属性信息
         public bool Selected = false;//记录实例的选择状态
+        public int ID;//唯一标识符 在同一个图层中把多个GISFeature区别开来
 
         public GISFeature(GISSpatial spatial, GISAttribute attribute) //构造函数传入空间与属性信息
         {
@@ -447,7 +448,6 @@ namespace MYGIS
             SHAPETYPE ShapeType = (SHAPETYPE)Enum.Parse( //类型整数变对应的枚举值
                 typeof(SHAPETYPE), sfh.ShapeType.ToString());
             GISExtent extent = new GISExtent(sfh.Xmax, sfh.Xmin, sfh.Ymax, sfh.Ymin);
-            //
             string dbffilename = shpfilename.Replace(".shp", ".dbf");//更改后缀
             DataTable table = ReadDBF(dbffilename);
             GISLayer layer = new GISLayer(shpfilename, ShapeType, extent, ReadFields(table)); //gislayer的构造参数分别是名字 图层类型 范围 *GISField的泛型
@@ -672,6 +672,9 @@ namespace MYGIS
         }
         public void AddFeature(GISFeature feature)
         {
+            //确保每个新增的feature的id都为已有对象的最大id加1 由此固定了id与feature的关系
+            if (Features.Count == 0) feature.ID = 0;
+            else feature.ID = Features[Features.Count - 1].ID + 1;
             Features.Add(feature);
         }
         public int FeatureCount()
@@ -723,6 +726,8 @@ namespace MYGIS
                 Selection[i].Selected = false;
             Selection.Clear();
         }
+
+        
     }
     public class GISTools
     {

@@ -168,7 +168,6 @@ namespace MYGIS
                 //其他情况交点数+1
                 count++;
             }
-            Console.WriteLine("count:",count);
             return count % 2 != 0;
         }
     }
@@ -727,7 +726,22 @@ namespace MYGIS
             Selection.Clear();
         }
 
-        
+        //通过id找到gisfeature 并给他的selected赋值
+        public void AddSelectedFeatureByID(int id)
+        {
+            GISFeature feature = GetFeatureByID(id);
+            feature.Selected = true;
+            Selection.Add(feature);
+        }
+        public GISFeature GetFeatureByID(int id)
+        {
+            foreach (GISFeature feature in Features)
+                if (feature.ID == id) return feature;
+            return null;
+        }
+
+
+
     }
     public class GISTools
     {

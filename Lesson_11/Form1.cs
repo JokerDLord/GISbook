@@ -15,6 +15,7 @@ namespace Lesson_11
     {
         GISLayer layer = null;
         GISView view = null;
+        Form2 AttributeWindow = null;
         public Form1()
         {
             InitializeComponent();
@@ -47,11 +48,12 @@ namespace Lesson_11
             UpdateMap();
         }
 
-        private void UpdateMap()
+        public void UpdateMap()
         {
             Graphics graphics = CreateGraphics();
             graphics.FillRectangle(new SolidBrush(Color.Black), ClientRectangle);
             layer.draw(graphics,view);
+            UpdateStatusBar();
         }
         public void MapButtonClick(object sender, EventArgs e)
         {
@@ -68,8 +70,26 @@ namespace Lesson_11
 
         private void button9_Click(object sender, EventArgs e)
         {
-            Form2 form2 = new Form2(layer);
-            form2.Show();
+            OpenAttributeWindow();
+        }
+
+        private void OpenAttributeWindow()
+        {
+            //如果图层为空就返回
+            if (layer == null) return;
+            //如果属性窗口没有初始化 则初始化
+            if (AttributeWindow == null)
+                AttributeWindow = new Form2(layer, this);
+            //如果窗口资源被释放了 则初始化
+            if(AttributeWindow.IsDisposed)
+                AttributeWindow = new Form2(layer, this);
+            //显示窗口属性
+            AttributeWindow.Show();
+            //如果属性窗口最小化了 令他正常显示
+            if (AttributeWindow.WindowState == FormWindowState.Minimized)
+                AttributeWindow.WindowState = FormWindowState.Normal;
+            //吧属性窗口放在最前端显示
+            AttributeWindow.BringToFront();
         }
 
         private void button10_Click(object sender, EventArgs e)
@@ -95,6 +115,9 @@ namespace Lesson_11
             if (sr == SelectResult.OK)
             {
                 UpdateMap();
+                //toolStripStatusLabel1.Text = layer.Selection.Count.ToString();
+                toolStripStatusLabel2.Text = "click @" + v.x.ToString() + "|" + v.y.ToString();
+                UpdateAttributeWindow();
                 //statusStrip1.Text = layer.Selection.Count.ToString();
             }
         }
@@ -104,10 +127,41 @@ namespace Lesson_11
             if (layer == null) return;
             layer.ClearSelection();
             UpdateMap();
+            //toolStripStatusLabel1.Text = "0";
+            toolStripStatusLabel2.Text = "click @";
             //statusStrip1.Text = "0";
+            UpdateAttributeWindow();
         }
 
+        private void UpdateAttributeWindow()
+        {
+            //如果图层为空，则返回
+            if (layer == null) return;
+            //如果属性窗口为空，则返回
+            if (AttributeWindow==null) return;
+            //如果属性窗口已经释放 则返回
+            if (AttributeWindow.IsDisposed) return;
+            //调用属性窗口更新函数
+            AttributeWindow.UpdateData();
+        }
+
+        public void UpdateStatusBar()
+        {
+            toolStripStatusLabel1.Text = layer.Selection.Count.ToString();
+        }
+        
+
         private void statusStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+
+        }
+
+        private void toolStripStatusLabel1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void toolStripStatusLabel2_Click(object sender, EventArgs e)
         {
 
         }

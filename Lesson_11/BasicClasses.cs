@@ -326,8 +326,8 @@ namespace MYGIS
         //判断两个空间对象是否相交 排除所有不相交情况就得到相交
         public bool IntersectOrNot(GISExtent extent)
         {
-            return !(getMaxX() < extent.getMinX()) || getMinX() > extent.getMaxX() ||
-                getMaxY() < extent.getMinY() || getMinY() > extent.getMaxY();
+            return !(getMaxX() < extent.getMinX() || getMinX() > extent.getMaxX() ||
+                getMaxY() < extent.getMinY() || getMinY() > extent.getMaxY());
         }
     }
 

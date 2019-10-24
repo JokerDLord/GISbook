@@ -1199,7 +1199,8 @@ namespace MYGIS
                 }
             }
             Console.WriteLine("id:"+ id.ToString());//测试id是否存在
-            Console.WriteLine(features[id].spatialpart.centroid.x.ToString() + "|" + features[id].spatialpart.centroid.y.ToString());
+            if (id!=-1)
+                Console.WriteLine(features[id].spatialpart.centroid.x.ToString() + "|" + features[id].spatialpart.centroid.y.ToString());
             Console.WriteLine("鼠标点到元素点在地图上相距"+distance.ToString());//此处的distance是features中最近的元素点到鼠标点映射到地图上点的距离
             //精选
             if (id == -1)//经过遍历 没有与minsextent相交的点则跳出

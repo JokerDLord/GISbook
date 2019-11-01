@@ -1276,7 +1276,7 @@ namespace MYGIS
             {
                 //先粗选点与多边形extent是否有交集
                 //Console.WriteLine("1");
-                if (MinSelectExtent.IntersectOrNot(features[i].spatialpart.extent) == false) continue;
+                //if (MinSelectExtent.IntersectOrNot(features[i].spatialpart.extent) == false) continue;
                 GISPolygon polygon = (GISPolygon)(features[i].spatialpart);
                 if (polygon.include(vertex))
                     SelectedFeatures.Add(features[i]);

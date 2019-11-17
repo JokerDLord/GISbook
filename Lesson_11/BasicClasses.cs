@@ -770,9 +770,9 @@ namespace MYGIS
                 if (_vertexes[i].x < minx) minx = _vertexes[i].x;
                 if (_vertexes[i].y < miny) miny = _vertexes[i].y;
                 if (_vertexes[i].x > maxx) maxx = _vertexes[i].x;
-                if (_vertexes[i].y < maxy) maxy = _vertexes[i].y;
+                if (_vertexes[i].y > maxy) maxy = _vertexes[i].y;
             }
-            return new GISExtent(minx, miny, maxx, maxy);
+            return new GISExtent(minx, maxx, miny,  maxy);
         }
 
         public static double CalculateLength(List<GISVertex> _vertexes)

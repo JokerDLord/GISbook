@@ -1392,6 +1392,8 @@ namespace MYGIS
         public static Color SelectedPolygonFillColor = Color.Yellow;
         //绘制选择或缩放范围框时的填充颜色
         public static Color ZoomSelectBoxColor = Color.FromArgb(80, 0, 0, 0);
+        public static double ZoominFactor = 0.8;
+        public static double ZoomoutFactor = 0.8;
     }
 
     //鼠标操作

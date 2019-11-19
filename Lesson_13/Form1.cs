@@ -16,13 +16,13 @@ namespace Lesson_13
         GISLayer layer = null;
         GISView view = null;
         Form2 AttributeWindow = null;
-        BufferedGraphics backMap;
-        BufferedGraphicsContext backWindow;
+        //BufferedGraphics backMap;
+        //BufferedGraphicsContext backWindow;
 
         Bitmap bitbackwindow;
 
         //记录鼠标按钮被按下后的位置和鼠标移动中的位置
-        MOUSECOMMAND MouseCommand = MOUSECOMMAND.Select;
+        MOUSECOMMAND MouseCommand = MOUSECOMMAND.Unused;
         int MouseStartX = 0;
         int MouseStartY = 0;
         int MouseMovingX = 0;
@@ -33,11 +33,11 @@ namespace Lesson_13
         public Form1()
         {
             InitializeComponent();
-            this.SetStyle(System.Windows.Forms.ControlStyles.UserPaint |
-                System.Windows.Forms.ControlStyles.AllPaintingInWmPaint |
-                System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer,
-                true);
-            backWindow = BufferedGraphicsManager.Current;
+            //this.SetStyle(System.Windows.Forms.ControlStyles.UserPaint |
+            //    System.Windows.Forms.ControlStyles.AllPaintingInWmPaint |
+            //    System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer,
+            //    true);
+            //backWindow = BufferedGraphicsManager.Current;
             view = new GISView(new GISExtent(new GISVertex(0, 0), new GISVertex(1, 1)), ClientRectangle);
         }
 
@@ -99,7 +99,7 @@ namespace Lesson_13
             bitbackwindow = new Bitmap(ClientRectangle.Width, ClientRectangle.Height);
             //在背景窗口绘图
             Graphics g = Graphics.FromImage(bitbackwindow);
-            g.FillRectangle(new SolidBrush(Color.Black), ClientRectangle);
+            g.FillRectangle(new SolidBrush(Color.LightBlue), ClientRectangle);
             layer.draw(g, view);
             //把背景窗口绘制到前景
             Graphics frontgraphics = CreateGraphics();
@@ -317,11 +317,173 @@ namespace Lesson_13
                     }
                     break;
                 case MOUSECOMMAND.Zoomin:
+                    if (e.X == MouseStartX && e.Y == MouseStartY)
+                    {
+                        //单点放大
+                        GISVertex MouseLocation = view.ToMapVertex(e.Location);
+                        GISExtent E1 = view.getRealExtent();
+                        double newwidth = E1.getWidth() * GISConst.ZoominFactor;
+                        double newheight = E1.getHeight() * GISConst.ZoominFactor;
+                        double newminx = MouseLocation.x - (MouseLocation.x - E1.getMinX()) * GISConst.ZoominFactor;
+                        double newminy = MouseLocation.y - (MouseLocation.y - E1.getMinY()) * GISConst.ZoominFactor;
+                        view.UpdateExtent(new GISExtent(newminx, newminx + newwidth, newminy, newminy + newheight));
+                    }
+                    else
+                    {
+                        //拉框放大
+                        view.UpdateExtent(view.Rect2Extent(e.X, MouseStartX, e.Y, MouseStartY));
+                    }
+                    UpdateMap();
                     break;
                 case MOUSECOMMAND.Zoomout:
+                    if (e.X == MouseStartX && e.Y == MouseStartY)
+                    {
+                        //单点缩小
+                        GISExtent e1 = view.getRealExtent();
+                        GISVertex mouselocation = view.ToMapVertex(e.Location);
+                        double newwidth = e1.getWidth() / GISConst.ZoomoutFactor;
+                        double newheight = e1.getHeight() / GISConst.ZoomoutFactor;
+                        double newminx = mouselocation.x - (mouselocation.x - e1.getMinX()) / GISConst.ZoomoutFactor;
+                        double newminy = mouselocation.y - (mouselocation.y - e1.getMinY()) / GISConst.ZoomoutFactor;
+                        view.UpdateExtent(new GISExtent(newminx, newminx + newwidth, newminy, newminy + newheight));
+                    }
+                    else
+                    {
+                        //拉框缩小
+                        GISExtent e3 = view.Rect2Extent(e.X, MouseStartX, e.Y, MouseStartY);
+                        GISExtent e1 = view.getRealExtent();
+                        double newwidth = e1.getWidth() * e1.getWidth() / e3.getWidth();
+                        double newheight = e1.getHeight() * e1.getHeight() / e3.getHeight();
+                        double newminx = e3.getMinX() - (e3.getMinX() - e1.getMinX()) * newwidth / e1.getWidth();
+                        double newminy = e3.getMinY() - (e3.getMinY() - e1.getMinY()) * newheight / e1.getHeight();
+                        view.UpdateExtent(new GISExtent(newminx, newminx + newwidth, newminy, newminy + newheight));
+                    }
+                    UpdateMap();
                     break;
                 case MOUSECOMMAND.Pan:
+                    if (e.X != MouseStartX && e.Y != MouseStartY)
+                    {
+                        GISExtent e1 = view.getRealExtent();
+                        GISVertex m1 = view.ToMapVertex(new Point(MouseStartX, MouseStartY));
+                        GISVertex m2 = view.ToMapVertex(e.Location);
+                        double newwidth = e1.getWidth();
+                        double newheight = e1.getHeight();
+                        double newminx = e1.getMinX() - (m2.x - m1.x);
+                        double newminy = e1.getMinY() - (m2.y - m1.y);
+                        view.UpdateExtent(new GISExtent(newminx, newminx + newwidth, newminy, newminy + newheight));
+                        UpdateMap();
+                    }
                     break;
+            }
+        }
+
+        private void SelectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //if (layer == null) return;
+            //if (sender.Equals(fullExtentToolStripMenuItem))
+            //{
+            //    view.UpdateExtent(layer.Extent);
+            //    UpdateMap();
+            //}
+            //else
+            //{
+            //    selectToolStripMenuItem.Checked = false;
+            //    zoomInToolStripMenuItem.Checked = false;
+            //    zoomOutToolStripMenuItem.Checked = false;
+            //    panToolStripMenuItem.Checked = false;
+            //    ((ToolStripMenuItem)sender).Checked = true;
+            //    if (sender.Equals(selectToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Select;
+            //    else if (sender.Equals(zoomInToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomin;
+            //    else if (sender.Equals(zoomOutToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomout;
+            //    else if (sender.Equals(panToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Pan;
+            //}
+        }
+
+
+
+        private void Form1_MouseClick_1(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+                contextMenuStrip1.Show(this.PointToScreen(e.Location));
+
+            //if (layer == null) return;
+            //if (sender.Equals(fullExtentToolStripMenuItem))
+            //{
+            //    view.UpdateExtent(layer.Extent);
+            //    UpdateMap();
+            //}
+            //else
+            //{
+            //    selectToolStripMenuItem.Checked = false;
+            //    zoomInToolStripMenuItem.Checked = false;
+            //    zoomOutToolStripMenuItem.Checked = false;
+            //    panToolStripMenuItem.Checked = false;
+            //    ((ToolStripMenuItem)sender).Checked = true;
+            //    if (sender.Equals(selectToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Select;
+            //    else if (sender.Equals(zoomInToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomin;
+            //    else if (sender.Equals(zoomOutToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomout;
+            //    else if (sender.Equals(panToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Pan;
+            //}
+        }
+
+        private void ContextMenuStrip1_ItemClicked(object sender, ToolStripItemClickedEventArgs e)
+        {
+            //if (layer == null) return;
+            //if (sender.Equals(fullExtentToolStripMenuItem))
+            //{
+            //    view.UpdateExtent(layer.Extent);
+            //    UpdateMap();
+            //}
+            //else
+            //{
+            //    selectToolStripMenuItem.Checked = false;
+            //    zoomInToolStripMenuItem.Checked = false;
+            //    zoomOutToolStripMenuItem.Checked = false;
+            //    panToolStripMenuItem.Checked = false;
+            //    //((ToolStripMenuItem)sender).Checked = true;
+            //    if (sender.Equals(selectToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Select;
+            //    else if (sender.Equals(zoomInToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomin;
+            //    else if (sender.Equals(zoomOutToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Zoomout;
+            //    else if (sender.Equals(panToolStripMenuItem))
+            //        MouseCommand = MOUSECOMMAND.Pan;
+            //}
+        }
+
+        //所有item的点击都指向该函数
+        private void toolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (layer == null) return;
+            if (sender.Equals(fullExtentToolStripMenuItem))
+            {
+                view.UpdateExtent(layer.Extent);
+                UpdateMap();
+            }
+            else
+            {
+                selectToolStripMenuItem.Checked = false;
+                zoomInToolStripMenuItem.Checked = false;
+                zoomOutToolStripMenuItem.Checked = false;
+                panToolStripMenuItem.Checked = false;
+                ((ToolStripMenuItem)sender).Checked = true;
+                if (sender.Equals(selectToolStripMenuItem))
+                    MouseCommand = MOUSECOMMAND.Select;
+                else if (sender.Equals(zoomInToolStripMenuItem))
+                    MouseCommand = MOUSECOMMAND.Zoomin;
+                else if (sender.Equals(zoomOutToolStripMenuItem))
+                    MouseCommand = MOUSECOMMAND.Zoomout;
+                else if (sender.Equals(panToolStripMenuItem))
+                    MouseCommand = MOUSECOMMAND.Pan;
             }
         }
     }

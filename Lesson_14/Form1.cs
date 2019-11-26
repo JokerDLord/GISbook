@@ -13,9 +13,12 @@ namespace Lesson_14
 {
     public partial class Form1 : Form
     {
-        GISLayer layer = null;
+        //GISLayer layer = null;
+        GISDocument document = new GISDocument();
+
         GISView view = null;
         Form2 AttributeWindow = null;
+        Dictionary<GISLayer, Form2> AllAttWnds = new Dictionary<GISLayer, Form2>();
         //BufferedGraphics backMap;
         //BufferedGraphicsContext backWindow;
 
@@ -38,7 +41,22 @@ namespace Lesson_14
             //    System.Windows.Forms.ControlStyles.OptimizedDoubleBuffer,
             //    true);
             //backWindow = BufferedGraphicsManager.Current;
-            view = new GISView(new GISExtent(new GISVertex(0, 0), new GISVertex(1, 1)), ClientRectangle);
+            //view = new GISView(new GISExtent(new GISVertex(0, 0), new GISVertex(1, 1)), ClientRectangle);
+            //this.MouseWheel += System.Windows.Forms.MouseEventHandler(OnMouseWheel);
+            this.MouseWheel += new System.Windows.Forms.MouseEventHandler(OnMouseWheel);
+        }
+
+        private void OnMouseWheel(object sender, MouseEventArgs e)
+        {
+            if (e.Delta > 0)
+            {
+                view.ChangeView(GISMapActions.zoomin);
+            }
+            else if (e.Delta < 0)
+            {
+                view.ChangeView(GISMapActions.zoomout);
+            }
+            UpdateMap();
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -48,23 +66,23 @@ namespace Lesson_14
 
         private void button1_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Shapefile文件|*.shp";
-            openFileDialog.RestoreDirectory = true;
-            openFileDialog.FilterIndex = 1;
-            openFileDialog.Multiselect = false;
-            if (openFileDialog.ShowDialog() != DialogResult.OK) return;
-            layer = GISShapefile.ReadShapefile(openFileDialog.FileName);
-            layer.DrawAttributeOrNot = false;
-            MessageBox.Show("read " + layer.FeatureCount() + "objects");
-            view.UpdateExtent(layer.Extent);
-            UpdateMap();
+            //OpenFileDialog openFileDialog = new OpenFileDialog();
+            //openFileDialog.Filter = "Shapefile文件|*.shp";
+            //openFileDialog.RestoreDirectory = true;
+            //openFileDialog.FilterIndex = 1;
+            //openFileDialog.Multiselect = false;
+            //if (openFileDialog.ShowDialog() != DialogResult.OK) return;
+            //layer = GISShapefile.ReadShapefile(openFileDialog.FileName);
+            //layer.DrawAttributeOrNot = false;
+            //MessageBox.Show("read " + layer.FeatureCount() + "objects");
+            //view.UpdateExtent(layer.Extent);
+            //UpdateMap();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            view.UpdateExtent(layer.Extent);
-            UpdateMap();
+            //view.UpdateExtent(layer.Extent);
+            //UpdateMap();
         }
 
         public void UpdateMap()
@@ -89,6 +107,11 @@ namespace Lesson_14
             ////把绘图内容搬到前端
             //Invalidate();//使整个控件画面无效并重绘控件
 
+            if (view == null)
+            {
+                if (document.IsEmpty()) return;
+                view = new GISView(new GISExtent(document.Extent), ClientRectangle);
+            }
 
             //原始方法 不同上
             if (ClientRectangle.Width * ClientRectangle.Height == 0) return;
@@ -100,7 +123,9 @@ namespace Lesson_14
             //在背景窗口绘图
             Graphics g = Graphics.FromImage(bitbackwindow);
             g.FillRectangle(new SolidBrush(Color.LightBlue), ClientRectangle);
-            layer.draw(g, view);
+            document.draw(g,view);
+            //layer.draw(g, view);
+
             //把背景窗口绘制到前景
             Graphics frontgraphics = CreateGraphics();
             frontgraphics.DrawImage(bitbackwindow, 0, 0);
@@ -110,32 +135,40 @@ namespace Lesson_14
         }
         public void MapButtonClick(object sender, EventArgs e)
         {
-            GISMapActions action = GISMapActions.zoomin;
-            if ((Button)sender == button3) action = GISMapActions.zoomin;
-            else if ((Button)sender == button4) action = GISMapActions.zoomout;
-            else if ((Button)sender == button5) action = GISMapActions.moveup;
-            else if ((Button)sender == button6) action = GISMapActions.movedown;
-            else if ((Button)sender == button7) action = GISMapActions.moveleft;
-            else if ((Button)sender == button8) action = GISMapActions.moveright;
-            view.ChangeView(action);
-            UpdateMap();
+            //GISMapActions action = GISMapActions.zoomin;
+            //if ((Button)sender == button3) action = GISMapActions.zoomin;
+            //else if ((Button)sender == button4) action = GISMapActions.zoomout;
+            //else if ((Button)sender == button5) action = GISMapActions.moveup;
+            //else if ((Button)sender == button6) action = GISMapActions.movedown;
+            //else if ((Button)sender == button7) action = GISMapActions.moveleft;
+            //else if ((Button)sender == button8) action = GISMapActions.moveright;
+            //view.ChangeView(action);
+            //UpdateMap();
         }
 
         private void button9_Click(object sender, EventArgs e)
         {
-            OpenAttributeWindow();
+            //OpenAttributeWindow();
         }
 
-        private void OpenAttributeWindow()
+        public void OpenAttributeWindow(GISLayer layer)
         {
-            //如果图层为空就返回
-            if (layer == null) return;
+            Form2 AttributeWindow = null;
+            //如果属性窗口之前已经存在了，就找到它，然后移除记录，稍后统一添加
+            if (AllAttWnds.ContainsKey(layer))
+            {
+                AttributeWindow = AllAttWnds[layer];
+                AllAttWnds.Remove(layer);
+            }
             //如果属性窗口没有初始化 则初始化
             if (AttributeWindow == null)
                 AttributeWindow = new Form2(layer, this);
             //如果窗口资源被释放了 则初始化
             if(AttributeWindow.IsDisposed)
                 AttributeWindow = new Form2(layer, this);
+            //添加属性窗口与图层的关联记录
+            AllAttWnds.Add(layer, AttributeWindow);
+
             //显示窗口属性
             AttributeWindow.Show();
             //如果属性窗口最小化了 令他正常显示
@@ -147,57 +180,66 @@ namespace Lesson_14
 
         private void button10_Click(object sender, EventArgs e)
         {
-            SaveFileDialog sfd = new SaveFileDialog();
-            if (sfd.ShowDialog() != DialogResult.OK) return;
-            GISMyFile myFile = new GISMyFile();
-            GISMyFile.WriteFile(layer, sfd.FileName);
-            //GISMyFile.WriteFile(layer, @"D:\mygisfile\mygisfile.jkgeo");
-            MessageBox.Show("done.");
+            //SaveFileDialog sfd = new SaveFileDialog();
+            //if (sfd.ShowDialog() != DialogResult.OK) return;
+            //GISMyFile myFile = new GISMyFile();
+            //GISMyFile.WriteFile(layer, sfd.FileName);
+            ////GISMyFile.WriteFile(layer, @"D:\mygisfile\mygisfile.jkgeo");
+            //MessageBox.Show("done.");
         }
 
         private void button11_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            if (openFileDialog.ShowDialog() != DialogResult.OK) return;
-            GISMyFile myFile = new GISMyFile();
-            layer = GISMyFile.ReadFile(openFileDialog.FileName);
-            //layer = GISMyFile.ReadFile(@"D:\mygisfile\mygisfile.jkgeo");
-            MessageBox.Show("read " + layer.FeatureCount() + " objects.");
-            view.UpdateExtent(layer.Extent);
-            UpdateMap();
+            //OpenFileDialog openFileDialog = new OpenFileDialog();
+            //if (openFileDialog.ShowDialog() != DialogResult.OK) return;
+            //GISMyFile myFile = new GISMyFile();
+            //layer = GISMyFile.ReadFile(openFileDialog.FileName);
+            ////layer = GISMyFile.ReadFile(@"D:\mygisfile\mygisfile.jkgeo");
+            //MessageBox.Show("read " + layer.FeatureCount() + " objects.");
+            //view.UpdateExtent(layer.Extent);
+            //UpdateMap();
         }
 
         private void Form1_MouseClick(object sender, MouseEventArgs e)
         {
-            if (layer == null) return;
-            GISVertex v = view.ToMapVertex(e.Location);
-            Console.WriteLine("mapvertex @" + v.x.ToString() +"|"+ v.y.ToString()); //此处鼠标点到地图点的转换???
-            SelectResult sr = layer.Select(v, view);
-            if (sr == SelectResult.OK)
-            {
-                UpdateMap();
-                //toolStripStatusLabel1.Text = layer.Selection.Count.ToString();
-                //toolStripStatusLabel2.Text = "click @" + v.x.ToString() + "|" + v.y.ToString();
-                UpdateAttributeWindow();
-                //statusStrip1.Text = layer.Selection.Count.ToString();
-            }
+            //if (layer == null) return;
+            //GISVertex v = view.ToMapVertex(e.Location);
+            //Console.WriteLine("mapvertex @" + v.x.ToString() +"|"+ v.y.ToString()); //此处鼠标点到地图点的转换???
+            //SelectResult sr = layer.Select(v, view);
+            //if (sr == SelectResult.OK)
+            //{
+            //    UpdateMap();
+            //    //toolStripStatusLabel1.Text = layer.Selection.Count.ToString();
+            //    //toolStripStatusLabel2.Text = "click @" + v.x.ToString() + "|" + v.y.ToString();
+            //    UpdateAttributeWindow();
+            //    //statusStrip1.Text = layer.Selection.Count.ToString();
+            //}
         }
 
         private void btClearSelect_Click(object sender, EventArgs e)
         {
-            if (layer == null) return;
-            layer.ClearSelection();
+            if (document.IsEmpty()) return;
+            document.ClearSelection();
             UpdateMap();
             //toolStripStatusLabel1.Text = "0";
-            toolStripStatusLabel2.Text = "click @";
+            //toolStripStatusLabel2.Text = "click @";
             //statusStrip1.Text = "0";
             UpdateAttributeWindow();
         }
 
         private void UpdateAttributeWindow()
         {
-            //如果图层为空，则返回
-            if (layer == null) return;
+            //如果文档为空，则返回
+            if (document.IsEmpty()) return;
+            foreach (Form2 AttributeWindow in AllAttWnds.Values)
+            {
+                //如果属性窗口为空，则继续
+                if (AttributeWindow == null) continue;
+                //如果属性窗口已经释放 则继续
+                if (AttributeWindow.IsDisposed) continue;
+                //更新数据
+                AttributeWindow.UpdateData();
+            }
             //如果属性窗口为空，则返回
             if (AttributeWindow==null) return;
             //如果属性窗口已经释放 则返回
@@ -208,7 +250,8 @@ namespace Lesson_14
 
         public void UpdateStatusBar()
         {
-            toolStripStatusLabel1.Text = layer.Selection.Count.ToString();
+            //现在statusbar显示的是图层选中数量
+            toolStripStatusLabel1.Text = document.layers.Count.ToString();
         }
         
 
@@ -282,8 +325,8 @@ namespace Lesson_14
             //重绘 根据不同的鼠标操作（选择、缩放、平移），会有不同的事件处理
             if (MouseOnMap) Invalidate();
 
-            GISVertex wv = view.ToMapVertex(e.Location);
-            toolStripStatusLabel2.Text = "mouse pointer@" + wv.x.ToString() + "|" + wv.y.ToString();
+            //GISVertex wv = view.ToMapVertex(e.Location);
+            //toolStripStatusLabel2.Text = "mouse pointer@" + wv.x.ToString() + "|" + wv.y.ToString();
         }
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
@@ -291,32 +334,37 @@ namespace Lesson_14
             MouseStartX = e.X;
             MouseStartY = e.Y;
             //如果按的是左键且当前有命令
-            MouseOnMap = (e.Button == MouseButtons.Left && MouseCommand != MOUSECOMMAND.Unused);
+            MouseOnMap = ((e.Button == MouseButtons.Left || e.Button == MouseButtons.Middle) 
+                && MouseCommand != MOUSECOMMAND.Unused);
+            if (e.Button == MouseButtons.Middle)
+            {
+                MouseCommand = MOUSECOMMAND.Pan;
+            }
         }
 
         private void Form1_MouseUp(object sender, MouseEventArgs e)
         {
-            if (layer == null) return;
+            if (document.IsEmpty()) return;
             if (MouseOnMap == false) return;
             MouseOnMap = false;
             switch (MouseCommand)
             {
                 case MOUSECOMMAND.Select:
                     //如果CTRL没被按住，就清空选择集 按住CTRL键表示选择多个 即向选择集中新增空间对象
-                    if (Control.ModifierKeys != Keys.Control) layer.ClearSelection();
+                    if (Control.ModifierKeys != Keys.Control) document.ClearSelection();
                     //初始化选择结果
                     SelectResult sr = SelectResult.UnknownType;
                     if (e.X == MouseStartX && e.Y == MouseStartY)
                     {
                         //点选
                         GISVertex v = view.ToMapVertex(e.Location);
-                        sr = layer.Select(v, view);
+                        sr = document.Select(v, view);
                     }
                     else
                     {
                         //框选
                         GISExtent extent = view.Rect2Extent(e.X, MouseStartX, e.Y, MouseStartY);
-                        sr = layer.Select(extent);
+                        sr = document.Select(extent);
                     }
                     if (sr == SelectResult.OK || Control.ModifierKeys != Keys.Control)
                     {
@@ -471,14 +519,34 @@ namespace Lesson_14
         //所有item的点击都指向该函数
         private void toolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (layer == null) return;
-            if (sender.Equals(fullExtentToolStripMenuItem))
+            if (sender.Equals(openDocumentToolStripMenuItem))
             {
-                view.UpdateExtent(layer.Extent);
+                OpenFileDialog openFileDialog = new OpenFileDialog();
+                openFileDialog.Filter = "GIS Document (*." + GISConst.MYDOC + ")|*." + GISConst.MYDOC;
+                openFileDialog.RestoreDirectory = false;
+                openFileDialog.FilterIndex = 1;
+                openFileDialog.Multiselect = false;
+                if (openFileDialog.ShowDialog() != DialogResult.OK) return;
+                document.Read(openFileDialog.FileName);
+                if (document.IsEmpty() == false)
+                    UpdateMap();
+            }
+            else if (sender.Equals(layerControlToolStripMenuItem))
+            {
+                Form3 layercontrol = new Form3(document, this);
+                layercontrol.ShowDialog();
+            }
+
+            //if (document.IsEmpty()) return;
+            else if (sender.Equals(fullExtentToolStripMenuItem))
+            {
+                if (document.IsEmpty() || view == null) return;
+                view.UpdateExtent(document.Extent);
                 UpdateMap();
             }
             else
             {
+                if (document.IsEmpty() || view == null) return;
                 selectToolStripMenuItem.Checked = false;
                 zoomInToolStripMenuItem.Checked = false;
                 zoomOutToolStripMenuItem.Checked = false;

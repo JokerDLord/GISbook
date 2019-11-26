@@ -119,6 +119,7 @@
             this.btopenattribute.TabIndex = 6;
             this.btopenattribute.Text = "打开属性表";
             this.btopenattribute.UseVisualStyleBackColor = true;
+            this.btopenattribute.Click += new System.EventHandler(this.Btopenattribute_Click);
             // 
             // comboBox1
             // 
@@ -212,6 +213,7 @@
             this.btapply.TabIndex = 16;
             this.btapply.Text = "应用";
             this.btapply.UseVisualStyleBackColor = true;
+            this.btapply.Click += new System.EventHandler(this.Btapply_Click);
             // 
             // btdispose
             // 
@@ -221,6 +223,7 @@
             this.btdispose.TabIndex = 17;
             this.btdispose.Text = "关闭";
             this.btdispose.UseVisualStyleBackColor = true;
+            this.btdispose.Click += new System.EventHandler(this.Btdispose_Click);
             // 
             // Form3
             // 

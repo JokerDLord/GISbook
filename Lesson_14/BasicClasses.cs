@@ -937,7 +937,8 @@ namespace MYGIS
             int ChineseCount = 0;
             //将字符串转换为ASCII码来编码的字节数组
             byte[] bs = new ASCIIEncoding().GetBytes(s);
-            foreach (byte b in bs) {
+            foreach (byte b in bs)
+            {
                 //转bs时所有双字节中文会被转换成单字节的0X3F
                 if (b == 0X3F) ChineseCount++;
             }
@@ -1559,6 +1560,45 @@ namespace MYGIS
             }
             br.Close();
             fsr.Close();
+        }
+
+        public bool IsEmpty()
+        {
+            return (layers.Count == 0);
+        }
+
+        public void ClearSelection()
+        {
+            for (int i = 0; i < layers.Count; i++)
+            {
+                layers[i].ClearSelection();
+            }
+        }
+
+        //原点选距离选择
+        public SelectResult Select(GISVertex v, GISView view)
+        {
+            SelectResult sr = SelectResult.TooFar;
+            for (int i = 0; i < layers.Count; i++)
+            {
+                if(layers[i].Selectable)
+                    if (layers[i].Select(v, view) == SelectResult.OK)
+                        sr = SelectResult.OK;
+            }
+            return sr;
+        }
+
+        //原框选范围选择
+        public SelectResult Select(GISExtent extent)
+        {
+            SelectResult sr = SelectResult.TooFar;
+            for (int i = 0; i < layers.Count; i++)
+            {
+                if (layers[i].Selectable)
+                    if (layers[i].Select(extent) == SelectResult.OK)
+                        sr = SelectResult.OK;
+            }
+            return sr;
         }
     }
 

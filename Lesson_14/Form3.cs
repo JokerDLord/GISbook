@@ -177,5 +177,23 @@ namespace Lesson_14
                 MessageBox.Show("Done!! jkd saved");
             }
         }
+
+        private void Btopenattribute_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem == null) return;
+            GISLayer layer = Document.getLayer(listBox1.SelectedItem.ToString());
+            Mapwindow.OpenAttributeWindow(layer);
+        }
+
+        private void Btapply_Click(object sender, EventArgs e)
+        {
+            Mapwindow.UpdateMap();
+        }
+
+        private void Btdispose_Click(object sender, EventArgs e)
+        {
+            Mapwindow.UpdateMap();
+            Close();
+        }
     }
 }

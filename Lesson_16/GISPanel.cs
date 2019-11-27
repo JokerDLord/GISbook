@@ -16,9 +16,6 @@ namespace MYGIS
         GISView view = null;
         //AttributeForm AttributeWindow = null;
         Dictionary<GISLayer, AttributeForm> AllAttWnds = new Dictionary<GISLayer, AttributeForm>();
-        //BufferedGraphics backMap;
-        //BufferedGraphicsContext backWindow;
-
         Bitmap bitbackwindow;
 
         //记录鼠标按钮被按下后的位置和鼠标移动中的位置
@@ -35,7 +32,22 @@ namespace MYGIS
         {
             InitializeComponent();
             DoubleBuffered = true;
+            this.MouseWheel += new System.Windows.Forms.MouseEventHandler(OnMouseWheel);//添加滚轮事件
         }
+
+        private void OnMouseWheel(object sender, MouseEventArgs e)
+        {
+            if (e.Delta > 0)
+            {
+                view.ChangeView(GISMapActions.zoomin);
+            }
+            else if (e.Delta < 0)
+            {
+                view.ChangeView(GISMapActions.zoomout);
+            }
+            UpdateMap();
+        }
+
 
         private void ContextMenuStrip1_Opening(object sender, CancelEventArgs e)
         {

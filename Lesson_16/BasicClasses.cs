@@ -924,13 +924,6 @@ namespace MYGIS
             return bytes;
         }
 
-        //string转bw写入函数
-        public static void WriteString(string s, BinaryWriter bw)
-        {//先写一个整数记录字符串长度 再将string变字节数组写入
-            bw.Write(StringLength(s)); //一般情况下字符数都是字节数 但是中文会占用两个字节
-            byte[] sbytes = Encoding.Default.GetBytes(s);
-            bw.Write(sbytes);
-        }
 
         public static int StringLength(string s)
         {
@@ -966,9 +959,20 @@ namespace MYGIS
         public static string ReadString(BinaryReader br)
         {
             int length = br.ReadInt32();
+            if (length == 0) return "";
             byte[] sbytes = br.ReadBytes(length);//length时每次读取字节流并写入字节数组后后前移的长度
-            return Encoding.Default.GetString(sbytes);//将字节编码成字符串
+            return Encoding.GetEncoding("utf-8").GetString(sbytes);//将字节编码成字符串
         }
+
+        //string转bw写入函数
+        public static void WriteString(string s, BinaryWriter bw)
+        {//先写一个整数记录字符串长度 再将string变字节数组写入
+            //bw.Write(StringLength(s)); //一般情况下字符数都是字节数 但是中文会占用两个字节
+            byte[] sbytes = Encoding.GetEncoding("utf-8").GetBytes(s);
+            bw.Write(sbytes.Length);/////
+            bw.Write(sbytes);
+        }
+
 
         //读到的整数转换为特定数据类型
         public static Type IntToType(int index)
@@ -1548,9 +1552,10 @@ namespace MYGIS
             layers.Clear();
             FileStream fsr = new FileStream(fileName, FileMode.Open);
             BinaryReader br = new BinaryReader(fsr);
-            while (br.PeekChar() != 1)
+            while (br.PeekChar() != -1)
             {
                 string path = GISTools.ReadString(br);
+                Console.WriteLine(path);
                 GISLayer layer = Addlayer(path);
                 layer.Path = path;
                 layer.DrawAttributeOrNot = br.ReadBoolean();

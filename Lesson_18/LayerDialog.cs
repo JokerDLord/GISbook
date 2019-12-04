@@ -99,14 +99,14 @@ namespace MYGIS
             layer.Visible = checkBox2.Checked;
             layer.DrawAttributeOrNot = checkBox3.Checked;
             layer.LabelIndex = comboBox1.SelectedIndex;
-            if (layer.ThematicType == THEMATICTYPE.UnifiedValue)
-            {
-                GISThematic Thematic = layer.Thematics[layer.ThematicType];
-                Thematic.InsideColor = btfillcolor.BackColor;
-                Thematic.OutsideColor = btboundcolor.BackColor;
-                Thematic.Size = ((tbdrawsize.Text == "") ? Thematic.Size : Int32.Parse(tbdrawsize.Text));
+            //if (layer.ThematicType == THEMATICTYPE.UnifiedValue)
+            //{
+            //    GISThematic Thematic = layer.Thematics[layer.ThematicType];
+            //    Thematic.InsideColor = btfillcolor.BackColor;
+            //    Thematic.OutsideColor = btboundcolor.BackColor;
+            //    Thematic.Size = ((tbdrawsize.Text == "") ? Thematic.Size : Int32.Parse(tbdrawsize.Text));
 
-            }
+            //}
 
         }
 
@@ -240,6 +240,64 @@ namespace MYGIS
         private void ComboBox2_SelectedIndexChanged(object sender, EventArgs e)
         {
             //唯一值地图
+            if (comboBox2.SelectedIndex == 0)
+            {
+                comboBox3.Visible = false;
+                tblevelnumber.Visible = false;
+                btfillcolor.Visible = true;
+                tbdrawsize.Visible = true;
+                btboundcolor.Visible = true;
+
+            }
+            //唯一值地图
+            else if (comboBox2.SelectedIndex == 1)
+            {
+                comboBox3.Visible = true;
+                tblevelnumber.Visible = false;
+                btfillcolor.Visible = false;
+                tbdrawsize.Visible = false;
+                btboundcolor.Visible = false;
+            }
+            //分层设色地图
+            else if (comboBox2.SelectedIndex == 2)
+            {
+                comboBox3.Visible = true;
+                tblevelnumber.Visible = true;
+                btfillcolor.Visible = false;
+                tbdrawsize.Visible = false;
+                btboundcolor.Visible = false;
+            }
+        }
+
+        private void Btchangethematic_Click(object sender, EventArgs e)
+        {
+            if (listBox1.SelectedItem == null) return;
+            GISLayer layer = Document.getLayer(listBox1.SelectedItem.ToString());
+            //唯一值地图
+            if (comboBox2.SelectedIndex == 0)
+            {
+                layer.MakeUnifiedValueMap();
+                GISThematic Thematic = layer.Thematics[layer.ThematicType];
+                Thematic.InsideColor = btfillcolor.BackColor;
+                Thematic.OutsideColor = btboundcolor.BackColor;
+                Thematic.Size = (tbdrawsize.Text == "") ? Thematic.Size : Int32.Parse(tbdrawsize.Text);
+            }
+            //独立值地图
+            else if (comboBox2.SelectedIndex == 1)
+            {
+                layer.MakeUniqueValueMap(comboBox3.SelectedIndex);
+            }
+            //分层设色地图
+            else if (comboBox2.SelectedIndex == 2)
+            {
+                if (layer.MakeGradualColor(comboBox3.SelectedIndex, Int32.Parse(tblevelnumber.Text)) == false)
+                {
+                    MessageBox.Show("基于该属性无法绘制分层设色地图!!");
+                    return;
+                }
+            }
+            //更新地图绘制
+            Mapwindow.UpdateMap();
         }
     }
 }

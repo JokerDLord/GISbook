@@ -739,7 +739,7 @@ namespace MYGIS
             Extent = _extent;
             Fields = (_fields == null) ? new List<GISField>() : _fields;
             //ThematicType = THEMATICTYPE.UnifiedValue;
-            //Thematics = new Dictionary<object, GISThematic>();
+            Thematics = new Dictionary<object, GISThematic>();
             //Thematics.Add(ThematicType, new GISThematic(_shapetype));
             ////Thematic = new GISThematic(_shapetype);
             MakeUnifiedValueMap();
@@ -896,6 +896,7 @@ namespace MYGIS
         public void MakeUnifiedValueMap()
         {
             ThematicType = THEMATICTYPE.UnifiedValue;
+            //Thematics = new Dictionary<object, GISThematic>();
             Thematics.Clear();
             Thematics.Add(ThematicType, new GISThematic(ShapeType));
         }

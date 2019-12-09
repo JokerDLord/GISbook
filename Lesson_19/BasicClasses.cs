@@ -518,17 +518,19 @@ namespace MYGIS
 
         public static GISLayer ReadShapefile(string shpfilename)
         {
-            FileStream fsr = new FileStream(shpfilename, FileMode.Open);//打开shp文件
-            BinaryReader br = new BinaryReader(fsr);//获取文件流后用二进制读取工具
+            //FileStream fsr = new FileStream(shpfilename, FileMode.Open);//打开shp文件
+            //BinaryReader br = new BinaryReader(fsr);//获取文件流后用二进制读取工具
+            BinaryReader br = GISTools.GetBinaryReader(shpfilename);
             ShapefileHeader sfh = ReadFileHeader(br);//调用之前的函数 获取头文件
             SHAPETYPE ShapeType = (SHAPETYPE)Enum.Parse( //类型整数变对应的枚举值
                 typeof(SHAPETYPE), sfh.ShapeType.ToString());
             GISExtent extent = new GISExtent(sfh.Xmax, sfh.Xmin, sfh.Ymax, sfh.Ymin);
             string dbffilename = shpfilename.Replace(".shp", ".dbf");//更改后缀
             DataTable table = ReadDBF(dbffilename);
-            GISLayer layer = new GISLayer(shpfilename, ShapeType, extent, ReadFields(table)); //gislayer的构造参数分别是名字 图层类型 范围 *GISField的泛型
+            GISLayer layer = new GISLayer(GISTools.NamePart(shpfilename), ShapeType, extent, ReadFields(table)); //gislayer的构造参数分别是名字 图层类型 范围 *GISField的泛型
             int rowindex = 0; //当前读取的记录位置
-            while (br.PeekChar() != -1)
+            //while (br.PeekChar() != -1)
+            while (br.BaseStream.Position < br.BaseStream.Length)
             {
                 RecordHeader rh = ReadRecordHeader(br);
                 int RecordLength = FromBigToLittle(rh.RecordLength) * 2 - 4;
@@ -563,7 +565,7 @@ namespace MYGIS
             }
 
             br.Close();
-            fsr.Close();//归还文件权限于操作系统
+            //fsr.Close();//归还文件权限于操作系统
             return layer;//最后返回一个图层文件
         }
         static GISPoint ReadPoint(byte[] RecordContent)
@@ -664,7 +666,23 @@ namespace MYGIS
 
         static DataTable ReadDBF(string dbffilename)
         {
-            System.IO.FileInfo f = new FileInfo(dbffilename);//通过系统自带的fileinfo对象获取文件所在的路径及文件名
+            string OriginalName = dbffilename;
+            System.IO.FileInfo f = new FileInfo(OriginalName);//通过系统自带的fileinfo对象获取文件所在的路径及文件名
+            string newfilename = f.DirectoryName + "\\" + (new Random().Next(99999999) + ".dbf");
+            //修改文件名，确保新文件名长度在8字符以内
+            while (true)
+            {
+                if (!File.Exists(newfilename))
+                {
+                    System.IO.File.Move(OriginalName, newfilename);
+                    break;
+                }
+                //用改8位数名称替代oldname
+                newfilename = f.DirectoryName + "\\" + (new Random().Next(99999999) + ".dbf");
+            }
+
+            f = new FileInfo(newfilename);
+
             DataSet ds = null;
             string constr = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" +
                 f.DirectoryName + ";Extended Properties=DBASE III";
@@ -677,6 +695,8 @@ namespace MYGIS
                 OleDbDataAdapter da = new OleDbDataAdapter(cmd);
                 da.Fill(ds);
             }
+            //把文件名改回来
+            System.IO.File.Move(newfilename, OriginalName);
             return ds.Tables[0];
         }
 
@@ -696,7 +716,8 @@ namespace MYGIS
             DataRow row = table.Rows[RowIndex]; //该函数读取给定序号的rowindex的一行数据
             for (int i = 0; i < table.Columns.Count; i++)
             {
-                attribute.AddValue(row[i]);
+                //attribute.AddValue(row[i]);
+                attribute.AddValue((row[i].GetType().ToString() == "System.DBNull") ? null : row[i]);
             }
             return attribute;
         }
@@ -1207,7 +1228,39 @@ namespace MYGIS
             return Color.FromArgb(colorlevel, colorlevel, colorlevel);
         }
 
-        
+        //正确的读取图层名
+        public static string NamePart(string filename)
+        {
+            FileInfo fi = new FileInfo(filename);
+            //获得出去文件路径及其扩展名后的部分
+            return fi.Name.Replace(fi.Extension, "");
+        }
+
+        //硬盘交互变内存交互 提高文件读写效率
+        public static BinaryReader GetBinaryReader(string filename)
+        {
+            FileStream fsr = new FileStream(filename, FileMode.Open);
+            BinaryReader br = new BinaryReader(fsr);
+            long filelength = br.BaseStream.Length;
+            List<byte> Lbytes = new List<byte>();
+            //读取文件如果超过2G，就分段读取、合并
+            while (filelength > Int32.MaxValue)
+            {
+                byte[] part = br.ReadBytes(Int32.MaxValue);
+                Lbytes.AddRange(part);
+                filelength -= Int32.MaxValue;
+            }
+            //读取最后一部分
+            byte[] lastpart = br.ReadBytes((int)filelength);
+            //合并最后一部分
+            Lbytes.AddRange(lastpart);
+            //读取完毕，关闭文件流
+            fsr.Close();
+            //获取内存数据流及BinaryReader
+            br = new BinaryReader(new MemoryStream(Lbytes.ToArray()));
+            return br;
+        }
+
     }
     public class GISField
     {
@@ -1277,6 +1330,12 @@ namespace MYGIS
         {
             for (int i = 0; i < attribute.ValueCount(); i++)
             {
+                if (attribute.GetValue(i) == null)
+                {
+                    bw.Write(false);
+                    continue;
+                }
+                bw.Write(true);
                 Type type = attribute.GetValue(i).GetType();
                 if (type.ToString() == "System.Boolean")
                     bw.Write((bool)attribute.GetValue(i));
@@ -1362,6 +1421,12 @@ namespace MYGIS
             GISAttribute attribute = new GISAttribute();
             for (int i = 0; i < fs.Count; i++)
             {
+                //判断是否空值
+                if (!br.ReadBoolean())
+                {
+                    attribute.AddValue(null);
+                    continue;
+                }
                 Type type = fs[i].datatype;
                 if (type.ToString() == "System.Boolean")
                     attribute.AddValue(br.ReadBoolean());
@@ -1637,6 +1702,8 @@ namespace MYGIS
         public static string MYFILE = "jkgeo";
         //地图文档扩展名
         public static string MYDOC = "jkd";
+        //描述文件
+        public static string RASTER = "rst";
     }
 
     //鼠标操作
@@ -1751,9 +1818,11 @@ namespace MYGIS
         public void Read(string fileName)
         {
             layers.Clear();
-            FileStream fsr = new FileStream(fileName, FileMode.Open);
-            BinaryReader br = new BinaryReader(fsr);
-            while (br.PeekChar() != -1)
+            //FileStream fsr = new FileStream(fileName, FileMode.Open);
+            //BinaryReader br = new BinaryReader(fsr);
+            BinaryReader br = GISTools.GetBinaryReader(fileName);
+            //while (br.PeekChar() != -1)
+            while (br.BaseStream.Position<br.BaseStream.Length)
             {
                 string path = GISTools.ReadString(br);
                 Console.WriteLine(path);
@@ -1765,7 +1834,7 @@ namespace MYGIS
                 layer.Visible = br.ReadBoolean();
             }
             br.Close();
-            fsr.Close();
+            //fsr.Close();
         }
 
         public bool IsEmpty()

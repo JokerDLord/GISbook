@@ -96,6 +96,7 @@ namespace MYGIS
         }
         public override void draw(Graphics graphics, GISView view, bool Selected, GISThematic Thematic)
         {
+            if (extent.PixelSize(view) < GISConst.SCREENSIZE) return;
             Point[] points = GISTools.GetScreenPoints(Vertexes, view);
             graphics.DrawLines(new Pen(Selected ? GISConst.SelectedLineColor : Thematic.InsideColor,
                 Thematic.Size), points);
@@ -134,6 +135,7 @@ namespace MYGIS
         }
         public override void draw(Graphics graphics, GISView view, bool Selected, GISThematic Thematic)
         {
+            if (extent.PixelSize(view) < GISConst.SCREENSIZE) return;
             Point[] points = GISTools.GetScreenPoints(Vertexes, view);
             graphics.FillPolygon(new SolidBrush(Selected ? 
                 GISConst.SelectedPolygonFillColor : Thematic.InsideColor), points);
@@ -362,6 +364,13 @@ namespace MYGIS
         {
             return (getMaxX() >= extent.getMaxX() && getMinX() <= extent.getMinX()
                 && getMaxY() >= extent.getMaxY() && getMinY() <= extent.getMinY());
+        }
+
+        public int PixelSize(GISView view)
+        {
+            Point p1 = view.ToScreenPoint(upright);
+            Point p2 = view.ToScreenPoint(bottomleft);
+            return Math.Abs(p1.X - p2.X) + Math.Abs(p1.Y - p2.Y);
         }
     }
 
@@ -1704,6 +1713,8 @@ namespace MYGIS
         public static string MYDOC = "jkd";
         //描述文件
         public static string RASTER = "rst";
+        //最小屏幕绘制范围
+        public static int SCREENSIZE = 20;
     }
 
     //鼠标操作

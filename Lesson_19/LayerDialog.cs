@@ -49,8 +49,8 @@ namespace MYGIS
                 comboBox1.Items.Add(layer.Fields[i].name);
                 comboBox3.Items.Add(layer.Fields[i].name);
             }
-            comboBox1.SelectedIndex = layer.LabelIndex;
-            comboBox3.SelectedIndex = layer.ThematicFieldIndex;
+            comboBox1.SelectedIndex = (layer.Fields.Count > 0) ? layer.LabelIndex : -1;
+            comboBox3.SelectedIndex = (layer.Fields.Count > 0) ? layer.ThematicFieldIndex : -1;
             fileaddr.Text = layer.Path;
             textBox1.Text = layer.Name;
 
@@ -297,6 +297,11 @@ namespace MYGIS
                 }
             }
             //更新地图绘制
+            Mapwindow.UpdateMap();
+        }
+
+        private void LayerDialog_FormClosed(object sender, FormClosedEventArgs e)
+        {
             Mapwindow.UpdateMap();
         }
     }

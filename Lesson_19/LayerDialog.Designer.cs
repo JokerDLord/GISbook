@@ -408,6 +408,7 @@
             this.Controls.Add(this.listBox1);
             this.Name = "LayerDialog";
             this.Text = "LayerDialog";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.LayerDialog_FormClosed);
             this.Shown += new System.EventHandler(this.Form3_Shown);
             this.Click += new System.EventHandler(this.Form3_Click);
             this.groupBox1.ResumeLayout(false);

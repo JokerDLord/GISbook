@@ -45,25 +45,42 @@ namespace MYGIS
 
         private void FillValue()//初始化DataGridView的部分移动到了此函数中
         {
+            DataTable table = new DataTable();
             //增加ID列
-            dataGridView1.Columns.Add("ID", "ID");
+            table.Columns.Add("ID");
             //增加其他列 用以记录所有字段
             for (int i=0;i< Layer.Fields.Count; i++)
             {
-                dataGridView1.Columns.Add(Layer.Fields[i].name, Layer.Fields[i].name);
+                table.Columns.Add(Layer.Fields[i].name);
             }
-            //增加行
+            //增加行 填充属性值 
             for (int i = 0; i < Layer.FeatureCount(); i++)
             {
-                dataGridView1.Rows.Add();
-                //增加ID值
-                dataGridView1.Rows[i].Cells[0].Value = Layer.GetFeature(i).ID;
-                //增加其他属性值
+                DataRow r = table.NewRow();
+                r.BeginEdit();
+                r[0] = Layer.GetFeature(i).ID;
                 for (int j = 0; j < Layer.Fields.Count; j++)
                 {
-                    dataGridView1.Rows[i].Cells[j+1].Value = Layer.GetFeature(i).getAttribute(j);
+                    r[j + 1] = Layer.GetFeature(i).getAttribute(j);
                 }
-                //确定每行的选择状态
+                r.EndEdit();
+                table.Rows.Add(r);
+                //dataGridView1.Rows.Add();
+                ////增加ID值
+                //dataGridView1.Rows[i].Cells[0].Value = Layer.GetFeature(i).ID;
+                ////增加其他属性值
+                //for (int j = 0; j < Layer.Fields.Count; j++)
+                //{
+                //    dataGridView1.Rows[i].Cells[j+1].Value = Layer.GetFeature(i).getAttribute(j);
+                //}
+                ////确定每行的选择状态
+                //dataGridView1.Rows[i].Selected = Layer.GetFeature(i).Selected;
+            }
+            //指定数据源
+            dataGridView1.DataSource = table;
+            //更新选择状态
+            for (int i = 0; i < Layer.FeatureCount(); i++)
+            {
                 dataGridView1.Rows[i].Selected = Layer.GetFeature(i).Selected;
             }
         }
@@ -97,7 +114,7 @@ namespace MYGIS
             {
                 //空值也可能会被选中
                 if (row.Cells[0].Value != null)
-                    Layer.AddSelectedFeatureByID((int)(row.Cells[0].Value));
+                    Layer.AddSelectedFeatureByID(Convert.ToInt32(row.Cells[0].Value));
             }
             //更新地图窗口的显示
             MapWindow.UpdateMap();
